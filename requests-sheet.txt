@@ -16,8 +16,8 @@
 /session
 {
 	"action":"join",
-	"playerId": "597cf42bf915fb1b641234f8",
-	"sessionId": "597cf404f915fb1b641234f7",
+	"playerId": "597e1b355808ed0748348bda",
+	"sessionId": "597e01debf39fb26082c8d26",
 	"inSession": false
 }
 
@@ -35,7 +35,8 @@
 /player
 {
     "action": "ready",
-    "playerId": "",
+    "playerId": "597e1aee5808ed0748348bd9",
+	"sessionId": "597e01debf39fb26082c8d26",
     "betsPlaced": [{
         "type": "number",
 		"selection": 20,

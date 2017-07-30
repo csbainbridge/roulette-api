@@ -1,4 +1,4 @@
-exports.getResult = function() {
+exports.getOutcome = function() {
     
     var TABLE_OUTCOMES = [
         { number: 1, colour: "red" },
@@ -40,4 +40,54 @@ exports.getResult = function() {
     ];
 
     return TABLE_OUTCOMES[Math.round(Math.random()*TABLE_OUTCOMES.length)];
+}
+
+exports.getResult = function(bet, outcome) {
+
+    var result = {};
+    
+    switch(bet.type) {
+
+        case "colour":
+
+            if ( bet.selection === outcome.colour ) {
+                result = {
+                    outcome: outcome,
+                    bet: bet,
+                    result: "win",
+                    amount: bet.amount * 2
+                }
+            } else {
+                result = {
+                    outcome: outcome,
+                    bet: bet,
+                    result: "loss",
+                    amount: 0
+                }
+            }
+
+            break;
+        
+        case "number":
+        
+            if ( bet.selection === outcome.number ) {
+                result = {
+                    outcome: outcome,
+                    bet: bet,
+                    result: "win",
+                    amount: bet.amount * 35
+                }
+            } else {
+                result = {
+                    outcome: outcome,
+                    bet: bet,
+                    result: "loss",
+                    amount: 0
+                }
+            }
+            break;
+    }
+
+    return result;
+
 }

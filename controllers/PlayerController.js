@@ -1,32 +1,76 @@
 var player = require('../models/player');
+var rouletteController = require('./RouletteController');
 
-module.exports = function( res, data, callback ) {
+module.exports = (function() {
 
     function create( res, data, callback ) {
+
         var playerDetails = {};
+
         if ( data.displayName !== "" ) {
             playerDetails.display_name = data.displayName;  
-        }
+        };
+
         player.create(playerDetails, function( error, player ) {
+
             if ( error ) {
                 callback(res, error, null);
                 return;
             };
-            callback(res, null, player)
+
+            callback(res, null, player);
+
         });
+
+    }
+
+    function find( res, data, callback ) {
+
+        player.findById({ _id: data.id }, function( error, player ) {
+
+            if ( error ) {
+                callback(res, error, null);
+                return;
+            }
+
+            callback(res, null, player);
+
+        });
+        
+    }
+
+    function findAll( res, data, callback ) {
+
+        player.find(function( error, players ) {
+
+            if ( error ) {
+                callback(res, error, null);
+                return;
+            }
+
+            callback(res, null, players);
+
+        });
+
     }
 
     function remove( res, data, callback ) {
+
         player.remove({ _id: data.playerId }, function( error, success ) {
+
             if ( error ) {
                 callback(res, error, null);
                 return;
             };
+
             callback(res, null, "player deleted successfully.")
+
         });
+        
     }
 
     function placeBet( res, data, callback ) {
+
         if ( data.readyStatus === true ) {
             callback(res, null, "You can no longer place any further bets after setting your status as ready.")
             return;
@@ -37,73 +81,177 @@ module.exports = function( res, data, callback ) {
             callback(res, null, "Please join a roulette session before placing any bets.");
             return;
         }
-        // {type: number, selection: 20, amount: 0.20} or {type: colour, value: red, amount: 1.00}
+
+        // Bet Structure{type: number, selection: 20, amount: 0.20} or {type: colour, value: red, amount: 1.00}
         bets = {
             $push: {
                 bets_placed: data.bet
             }
         }
+
         player.update({ _id: data.playerId }, bets, function( error, success ) {
+
             if ( error ) {
                 callback(res, error, null);
                 return;
             }
-            callback(res, null, "Your bet on " + data.bet.selection + " has been placed successfully");
+
+            callback(res, null, "Your bet on " + data.bet.selection + " has been placed successfully.");
+
         });
+
     }
 
-    function setSessionStatus( res, data, callback ) {
+    function joinSession( res, data, callback ) {
+
         player.update({ _id: data.playerId }, { in_session: true }, function( error, success ) {
+
             if ( error ) {
                 callback(res, error, null);
                 return
             }
-            callback(res, null, "player session status updated successfully")
+
+            callback(res, null, "You have joined the session successfully.")
+
         });
+
     }
 
     function ready( res, data, callback ) {
+
         player.update({ _id: data.playerId }, { ready_status: true }, function( error, success ) {
+            
+            var sessionController = require('./SessionController');
+
             if ( error ) {
                 callback(res, error, null);
                 return;
             };
+
+            sessionController.find(res, data, function( res, error, session ) {
+
+                if ( error ) {
+                    callback(res, error, null);
+                    return;
+                }
+
+                if ( checkPlayersReadyState(session["0"]) ) {
+
+                    callback(res, null, "All players are ready. Time to spin the wheel!")
+
+                    var outcome = rouletteController.getOutcome();
+                    settlePlayerBets(session["0"], outcome);
+
+                } else {
+
+                    callback(res, null, "Waiting for other players to ready up.")
+
+                }
+
+            })
             
-            callback(res, null, "You are ready")
+            // callback(res, null, "You are ready")
+
         });
     }
 
-    function find( res, data, callback ) {
-        player.findById({ _id: data.id }, function( error, player ) {
+    function checkPlayersReadyState(session) {
+
+        var playersReady = false;
+
+        for ( i = 0; i < session.players.length; i++ ) {
+
+            if ( session.players[i].ready_status === false ) {
+                return playersReady = false;
+            }
+
+        }
+
+        return playersReady = true;
+
+    }
+
+    function settlePlayerBets( session, outcome ) {
+
+        for ( i = 0; i < session.players.length; i++ ) {
+
+            var player = session.players[i];
+
+            for ( j = 0; j < player.bets_placed.length; j++ ) {
+                
+                var bet = player.bets_placed[j]; 
+
+                publishSettledBets(rouletteController.getResult(bet, outcome), player);
+                
+            }
+
+            clearBetsPlaced(player);
+
+        }
+
+        return;
+    }
+
+    function publishSettledBets( result, user ) {
+
+        var betsSettled = {
+            $push: {
+                bets_settled: result
+            }
+        }
+
+        player.update({ _id: user._id }, betsSettled, function( error, success ) {
+
+            if ( error ) {
+                console.log(error);
+                return;
+            }
+
+        });
+
+        return;
+    }
+
+    function clearBetsPlaced(user) {
+
+        player.update({ _id: user._id }, { $set: { bets_placed: [] } }, function( error, success ) {
+
+            if ( error ) {
+                console.log(error);
+                return;
+            }
+
+            console.log(success)
+
+        });
+
+        return;
+    }
+
+    function acceptBetsSettled( res, data, callback ) {
+
+        player.update({ _id: data.playerId }, { ready_status: false }, function( error, success ) {
+
             if ( error ) {
                 callback(res, error, null);
                 return;
             }
-            callback(res, null, player)
+
+            callback(res, null, "You are now ready to play again. Please place your bets then ready up.")
+
         });
+
     }
 
-    function findAll( res, data, callback ) {
-        player.find(function( error, players ) {
-            if ( error ) {
-                callback(res, error, null);
-                return;
-            }
-            callback(res, null, players)
-        });
-    }
-
-    var methods = {
+    return {
         create: create,
+        find: find,
+        findAll: findAll,
         delete: remove,
         bet: placeBet,
-        join: setSessionStatus,
+        join: joinSession,
         ready: ready,
-        find: find,
-        findAll: findAll
+        accept: acceptBetsSettled
     }
 
-    var method = methods[data.action];
-
-    method(res, data, callback);
-}
+}());
