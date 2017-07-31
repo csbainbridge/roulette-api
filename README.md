@@ -400,3 +400,7 @@ Response:
   ]
 }
 ```
+
+## Note
+
+I have not added testing as I have never had the pratical experience of implementing tests into my code. However, this is something I am willing to learn in the future. 
