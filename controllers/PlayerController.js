@@ -82,21 +82,27 @@ module.exports = (function() {
             return;
         }
 
-        // Bet Structure{type: number, selection: 20, amount: 0.20} or {type: colour, value: red, amount: 1.00}
         bets = {
             $push: {
                 bets_placed: data.bet
             }
         }
 
-        player.update({ _id: data.playerId }, bets, function( error, success ) {
+        data.id = data.playerId;
+
+        player.findOneAndUpdate({ _id: data.playerId }, bets, { new: true }, function( error, success ) {
 
             if ( error ) {
                 callback(res, error, null);
                 return;
             }
 
-            callback(res, null, "Your bet on " + data.bet.selection + " has been placed successfully.");
+            var response = {
+                message: "Your bet on " + data.bet.selection + " has been placed successfully.",
+                data: success.bets_placed
+            }
+
+            callback(res, null, response);
 
         });
 
@@ -104,20 +110,27 @@ module.exports = (function() {
 
     function joinSession( res, data, callback ) {
 
-        player.update({ _id: data.playerId }, { in_session: true }, function( error, success ) {
+        data.id = data.playerId;
+
+        player.findOneAndUpdate({ _id: data.id }, { in_session: true }, { new: true }, function( error, player ) {
 
             if ( error ) {
                 callback(res, error, null);
                 return
             }
 
-            callback(res, null, "You have joined the session successfully.")
+            callback(res, null, player)
 
         });
 
     }
 
     function ready( res, data, callback ) {
+
+        if ( data.betsPlaced.length == 0 ) {
+            callback(res, null, "You need to place a bet before you can ready up.");
+            return;
+        }
 
         player.update({ _id: data.playerId }, { ready_status: true }, function( error, success ) {
             
@@ -127,6 +140,8 @@ module.exports = (function() {
                 callback(res, error, null);
                 return;
             };
+
+            data.id = data.sessionId;
 
             sessionController.find(res, data, function( res, error, session ) {
 
@@ -149,8 +164,6 @@ module.exports = (function() {
                 }
 
             })
-            
-            // callback(res, null, "You are ready")
 
         });
     }
@@ -182,7 +195,7 @@ module.exports = (function() {
                 var bet = player.bets_placed[j]; 
 
                 publishSettledBets(rouletteController.getResult(bet, outcome), player);
-                
+
             }
 
             clearBetsPlaced(player);
@@ -221,8 +234,6 @@ module.exports = (function() {
                 return;
             }
 
-            console.log(success)
-
         });
 
         return;
@@ -230,14 +241,21 @@ module.exports = (function() {
 
     function acceptBetsSettled( res, data, callback ) {
 
-        player.update({ _id: data.playerId }, { ready_status: false }, function( error, success ) {
+        player.findOneAndUpdate({ _id: data.playerId }, { ready_status: false }, { new: true }, function( error, player ) {
 
             if ( error ) {
                 callback(res, error, null);
                 return;
             }
 
-            callback(res, null, "You are now ready to play again. Please place your bets then ready up.")
+            var response = {
+                message: "You are now ready to play again. Please place your bets then ready up.",
+                data: {
+                    ready_status: player.ready_status
+                }
+            }
+
+            callback(res, null, response)
 
         });
 

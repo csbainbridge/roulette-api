@@ -1,63 +1,5 @@
 var session = require('../models/session');
-
 var playerController = require('./PlayerController');
-
-//var rouletteController = require('./RouletteController');
-
-/**
- * {
- *  action: action_name,
- *  sessionId: id,
- *  playerId: id,
- * }
- */
-
-// module.exports = function( res, data, callback ) {
-
-//     function checkReadyState() {
-//         // Find singular session entity then iterate over players
-//         find(null, null, function( res, error, sessions ) {
-
-//             if ( error ) {
-//                 console.log(error)
-//             }
-
-//             sessions.forEach(function( session ) {
-//                 var playersReady = false;
-
-//                 session.players.forEach(function( player ) {
-//                     if ( player.ready_status === true ) {
-//                         playersReady = true;
-//                     } else {
-//                         playersReady = false;
-//                     }
-//                 })
-
-//                 if (playersReady === true ) {
-//                     var outcome = rouletteController.getResult();
-//                     console.log(outcome)
-//                 } else {
-//                     console.log(playersReady)
-//                 }
-
-//             })
-//         })  
-//     }
-
-//     var methods = {
-//         create: create,
-//         delete: remove,
-//         join: join,
-//         leave: leave,
-//         ready: checkReadyState,
-//         find: find,
-//         findAll: findAll,
-//     }
-
-//     var method = methods[data.action];
-
-//     method(res, data, callback);
-// }
 
 module.exports = (function() {
 
@@ -78,7 +20,7 @@ module.exports = (function() {
 
     function find( res, data, callback ) {
 
-        session.find({ _id: data.sessionId }).populate("players").exec(function( error, session ) {
+        session.find({ _id: data.id }).populate("players").exec(function( error, session ) {
 
             var playersReady = false;
 
@@ -130,7 +72,7 @@ module.exports = (function() {
             return;
         }
 
-        playerController.join(res, data, function( res, error, success ) {
+        playerController.join(res, data, function( res, error, player ) {
 
             if ( error ) {
                 callback(res, error, null);
@@ -144,7 +86,12 @@ module.exports = (function() {
                     return;
                 }
 
-                callback(res, null, "You have successfully joined the roulette room.");
+                var response = {
+                    message: "You have successfully joined the roulette room.",
+                    data: player
+                }
+
+                callback(res, null, response);
 
             });
 

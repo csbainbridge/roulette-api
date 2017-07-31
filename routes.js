@@ -1,9 +1,9 @@
 var url = require('url');
 var path = require('path');
 
-var parser = require('./parser.js');
 var controllers = require('./controllers');
-var response = require('./response.js')();
+var parser = require('./utilities/parser.js');
+var response = require('./utilities/response.js')();
 
 function sendResponse( res, error, data ) {
 
@@ -43,8 +43,14 @@ exports.get = function( req, res ) {
         resource = urlPath.base;
         controller = controllers[resource];
 
+        if ( urlPath.name === '' ) {
+            response.success(res, "please specify a resource 'session' or 'player")
+            return;
+        }
+
         if ( controller === null ) {
             response.error(res, "resource not found");
+            return;
         }
 
         controller.findAll(res, data, sendResponse);
@@ -58,7 +64,7 @@ exports.get = function( req, res ) {
             response.error(res, "resource not found");
         }
 
-        data.sessionId = urlPath.name;
+        data.id = urlPath.name;
         controller.find(res, data, sendResponse);
 
     }
